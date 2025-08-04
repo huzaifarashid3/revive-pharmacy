@@ -25,16 +25,40 @@ export default function Home() {
 
   // Load medicines and admin status on mount
   useEffect(() => {
-    const loadData = () => {
-      const loadedMedicines = storageUtils.getMedicines();
-      const adminStatus = storageUtils.getAdminSession();
-      
-      setMedicines(loadedMedicines);
-      setIsAdmin(adminStatus);
-      setLoading(false);
+    const loadData = async () => {
+      try {
+        const loadedMedicines = await storageUtils.getMedicines();
+        const adminStatus = storageUtils.getAdminSession();
+        
+        setMedicines(loadedMedicines);
+        setIsAdmin(adminStatus);
+        
+        // Try to sync to database on first load
+        await storageUtils.syncToDatabase();
+      } catch (error) {
+        console.error('Error loading data:', error);
+      } finally {
+        setLoading(false);
+      }
     };
 
     loadData();
+  }, []);
+
+  // Periodic sync with database
+  useEffect(() => {
+    const syncInterval = setInterval(async () => {
+      if (storageUtils.shouldSync()) {
+        try {
+          const freshMedicines = await storageUtils.getMedicines();
+          setMedicines(freshMedicines);
+        } catch (error) {
+          console.log('Sync failed, continuing with cached data');
+        }
+      }
+    }, 30000); // Check every 30 seconds
+
+    return () => clearInterval(syncInterval);
   }, []);
 
   // Filter medicines based on search query only
@@ -85,30 +109,45 @@ export default function Home() {
     setShowMedicineForm(true);
   };
 
-  const handleMedicineSubmit = (medicineData: Omit<Medicine, 'id'>) => {
-    if (editingMedicine) {
-      // Update existing medicine
-      const updatedMedicine = storageUtils.updateMedicine(editingMedicine.id, medicineData);
-      if (updatedMedicine) {
-        setMedicines(prev => prev.map(m => m.id === editingMedicine.id ? updatedMedicine : m));
+  const handleMedicineSubmit = async (medicineData: Omit<Medicine, 'id'>) => {
+    try {
+      if (editingMedicine) {
+        // Update existing medicine
+        const updatedMedicineData = { ...editingMedicine, ...medicineData };
+        const success = await storageUtils.updateMedicine(updatedMedicineData);
+        if (success) {
+          const updatedMedicines = await storageUtils.getMedicines();
+          setMedicines(updatedMedicines);
+        }
+      } else {
+        // Add new medicine
+        const newMedicineData = { ...medicineData, id: Date.now().toString() };
+        const success = await storageUtils.addMedicine(newMedicineData);
+        if (success) {
+          const updatedMedicines = await storageUtils.getMedicines();
+          setMedicines(updatedMedicines);
+        }
       }
-    } else {
-      // Add new medicine
-      const newMedicine = storageUtils.addMedicine(medicineData);
-      setMedicines(prev => [...prev, newMedicine]);
+      setShowMedicineForm(false);
+      setEditingMedicine(null);
+    } catch (error) {
+      console.error('Error saving medicine:', error);
     }
-    setShowMedicineForm(false);
-    setEditingMedicine(null);
   };
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (deletingMedicine) {
-      const success = storageUtils.deleteMedicine(deletingMedicine.id);
-      if (success) {
-        setMedicines(prev => prev.filter(m => m.id !== deletingMedicine.id));
+      try {
+        const success = await storageUtils.deleteMedicine(deletingMedicine.id);
+        if (success) {
+          const updatedMedicines = await storageUtils.getMedicines();
+          setMedicines(updatedMedicines);
+        }
+        setShowDeleteConfirmation(false);
+        setDeletingMedicine(null);
+      } catch (error) {
+        console.error('Error deleting medicine:', error);
       }
-      setShowDeleteConfirmation(false);
-      setDeletingMedicine(null);
     }
   };
 

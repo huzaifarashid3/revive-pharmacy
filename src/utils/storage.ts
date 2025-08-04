@@ -1,10 +1,15 @@
 import { Medicine } from '@/types/medicine';
+import { DatabaseService } from '@/lib/database';
 
-const STORAGE_KEY = 'pharmacy_medicines';
+const MEDICINES_KEY = 'pharmacy_medicines';
 const ADMIN_SESSION_KEY = 'pharmacy_admin_session';
+const LAST_SYNC_KEY = 'pharmacy_last_sync';
 
-// Default mock data for initial setup
-const defaultMedicines: Medicine[] = [
+// Sync interval: 30 seconds
+const SYNC_INTERVAL = 30 * 1000;
+
+// Default medicines data (for seeding and fallback)
+export const defaultMedicines: Medicine[] = [
   {
     id: '1',
     name: 'Panadol',
@@ -144,87 +149,204 @@ const defaultMedicines: Medicine[] = [
 ];
 
 export const storageUtils = {
-  // Get all medicines from localStorage
-  getMedicines: (): Medicine[] => {
-    if (typeof window === 'undefined') return defaultMedicines;
-    
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (!stored) {
-        // Initialize with default data if nothing exists
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultMedicines));
-        return defaultMedicines;
-      }
-      return JSON.parse(stored);
-    } catch (error) {
-      console.error('Error loading medicines from localStorage:', error);
-      return defaultMedicines;
-    }
-  },
-
-  // Save medicines to localStorage
-  saveMedicines: (medicines: Medicine[]): void => {
-    if (typeof window === 'undefined') return;
-    
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(medicines));
-    } catch (error) {
-      console.error('Error saving medicines to localStorage:', error);
-    }
-  },
-
-  // Add a new medicine
-  addMedicine: (medicine: Omit<Medicine, 'id'>): Medicine => {
-    const newMedicine: Medicine = {
-      ...medicine,
-      id: Date.now().toString() // Simple ID generation
-    };
-    
-    const medicines = storageUtils.getMedicines();
-    medicines.push(newMedicine);
-    storageUtils.saveMedicines(medicines);
-    
-    return newMedicine;
-  },
-
-  // Update an existing medicine
-  updateMedicine: (id: string, updates: Partial<Medicine>): Medicine | null => {
-    const medicines = storageUtils.getMedicines();
-    const index = medicines.findIndex(m => m.id === id);
-    
-    if (index === -1) return null;
-    
-    medicines[index] = { ...medicines[index], ...updates };
-    storageUtils.saveMedicines(medicines);
-    
-    return medicines[index];
-  },
-
-  // Delete a medicine
-  deleteMedicine: (id: string): boolean => {
-    const medicines = storageUtils.getMedicines();
-    const filteredMedicines = medicines.filter(m => m.id !== id);
-    
-    if (filteredMedicines.length === medicines.length) return false;
-    
-    storageUtils.saveMedicines(filteredMedicines);
-    return true;
-  },
-
-  // Admin session management
-  setAdminSession: (isAdmin: boolean): void => {
-    if (typeof window === 'undefined') return;
-    
-    if (isAdmin) {
-      localStorage.setItem(ADMIN_SESSION_KEY, 'true');
-    } else {
-      localStorage.removeItem(ADMIN_SESSION_KEY);
-    }
-  },
-
-  getAdminSession: (): boolean => {
+  // Check if we need to sync with database
+  shouldSync(): boolean {
     if (typeof window === 'undefined') return false;
     
-    return localStorage.getItem(ADMIN_SESSION_KEY) === 'true';
+    const lastSync = localStorage.getItem(LAST_SYNC_KEY);
+    if (!lastSync) return true;
+    
+    const timeSinceSync = Date.now() - parseInt(lastSync);
+    return timeSinceSync > SYNC_INTERVAL;
+  },
+
+  // Update last sync timestamp
+  updateLastSync(): void {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(LAST_SYNC_KEY, Date.now().toString());
+  },
+
+  // Get medicines (try database first, fallback to localStorage)
+  async getMedicines(): Promise<Medicine[]> {
+    if (typeof window === 'undefined') return defaultMedicines;
+
+    try {
+      // Try to get from database first
+      const dbMedicines = await DatabaseService.getAllMedicines();
+      
+      if (dbMedicines.length > 0) {
+        // Update localStorage cache
+        localStorage.setItem(MEDICINES_KEY, JSON.stringify(dbMedicines));
+        this.updateLastSync();
+        return dbMedicines;
+      }
+    } catch (error) {
+      console.log('Database unavailable, using localStorage');
+    }
+
+    // Fallback to localStorage
+    const stored = localStorage.getItem(MEDICINES_KEY);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+
+    // Final fallback to default data
+    localStorage.setItem(MEDICINES_KEY, JSON.stringify(defaultMedicines));
+    return defaultMedicines;
+  },
+
+  // Sync localStorage medicines to database (for initial seed)
+  async syncToDatabase(): Promise<void> {
+    if (typeof window === 'undefined') return;
+
+    try {
+      const localMedicines = localStorage.getItem(MEDICINES_KEY);
+      if (localMedicines) {
+        const medicines = JSON.parse(localMedicines);
+        const medicinesWithoutId = medicines.map(({ id, ...rest }: Medicine) => rest);
+        await DatabaseService.seedDatabase(medicinesWithoutId);
+      } else {
+        // Seed with default data
+        const medicinesWithoutId = defaultMedicines.map(({ id, ...rest }) => rest);
+        await DatabaseService.seedDatabase(medicinesWithoutId);
+      }
+    } catch (error) {
+      console.error('Failed to sync to database:', error);
+    }
+  },
+
+  // Add medicine (database first, localStorage backup)
+  async addMedicine(medicine: Medicine): Promise<boolean> {
+    try {
+      // Try database first
+      const dbMedicine = await DatabaseService.addMedicine(medicine);
+      if (dbMedicine) {
+        // Update localStorage cache
+        const current = await this.getMedicines();
+        const updated = [...current, dbMedicine];
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(MEDICINES_KEY, JSON.stringify(updated));
+          this.updateLastSync();
+        }
+        return true;
+      }
+    } catch (error) {
+      console.log('Database unavailable, using localStorage');
+    }
+
+    // Fallback to localStorage
+    if (typeof window !== 'undefined') {
+      const current = await this.getMedicines();
+      const updated = [...current, medicine];
+      localStorage.setItem(MEDICINES_KEY, JSON.stringify(updated));
+      return true;
+    }
+    return false;
+  },
+
+  // Update medicine (database first, localStorage backup)
+  async updateMedicine(updatedMedicine: Medicine): Promise<boolean> {
+    try {
+      // Try database first
+      const dbMedicine = await DatabaseService.updateMedicine(updatedMedicine.id, updatedMedicine);
+      if (dbMedicine) {
+        // Update localStorage cache
+        const current = await this.getMedicines();
+        const updated = current.map(med => med.id === updatedMedicine.id ? dbMedicine : med);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(MEDICINES_KEY, JSON.stringify(updated));
+          this.updateLastSync();
+        }
+        return true;
+      }
+    } catch (error) {
+      console.log('Database unavailable, using localStorage');
+    }
+
+    // Fallback to localStorage
+    if (typeof window !== 'undefined') {
+      const current = await this.getMedicines();
+      const updated = current.map(med => med.id === updatedMedicine.id ? updatedMedicine : med);
+      localStorage.setItem(MEDICINES_KEY, JSON.stringify(updated));
+      return true;
+    }
+    return false;
+  },
+
+  // Delete medicine (database first, localStorage backup)
+  async deleteMedicine(medicineId: string): Promise<boolean> {
+    try {
+      // Try database first
+      const success = await DatabaseService.deleteMedicine(medicineId);
+      if (success) {
+        // Update localStorage cache
+        const current = await this.getMedicines();
+        const updated = current.filter(med => med.id !== medicineId);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(MEDICINES_KEY, JSON.stringify(updated));
+          this.updateLastSync();
+        }
+        return true;
+      }
+    } catch (error) {
+      console.log('Database unavailable, using localStorage');
+    }
+
+    // Fallback to localStorage
+    if (typeof window !== 'undefined') {
+      const current = await this.getMedicines();
+      const updated = current.filter(med => med.id !== medicineId);
+      localStorage.setItem(MEDICINES_KEY, JSON.stringify(updated));
+      return true;
+    }
+    return false;
+  },
+
+  // Admin session management (unchanged)
+  getAdminSession(): boolean {
+    if (typeof window === 'undefined') return false;
+    
+    try {
+      const stored = localStorage.getItem(ADMIN_SESSION_KEY);
+      if (stored) {
+        const session = JSON.parse(stored);
+        const now = Date.now();
+        // Session expires after 1 hour
+        if (now - session.timestamp < 3600000) {
+          return session.isAdmin;
+        } else {
+          // Session expired, remove it
+          localStorage.removeItem(ADMIN_SESSION_KEY);
+        }
+      }
+      return false;
+    } catch (error) {
+      console.error('Error reading admin session:', error);
+      return false;
+    }
+  },
+
+  setAdminSession(isAdmin: boolean): void {
+    if (typeof window === 'undefined') return;
+    
+    try {
+      const session = {
+        isAdmin,
+        timestamp: Date.now()
+      };
+      localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(session));
+    } catch (error) {
+      console.error('Error saving admin session:', error);
+    }
+  },
+
+  clearAdminSession(): void {
+    if (typeof window === 'undefined') return;
+    
+    try {
+      localStorage.removeItem(ADMIN_SESSION_KEY);
+    } catch (error) {
+      console.error('Error clearing admin session:', error);
+    }
   }
 };
