@@ -13,6 +13,20 @@ import RelatedMedicinesPopup from '@/components/RelatedMedicinesPopup';
 export default function Home() {
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [showMedicineForm, setShowMedicineForm] = useState(false);
+  const [editingMedicine, setEditingMedicine] = useState<Medicine | null>(null);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [deletingMedicine, setDeletingMedicine] = useState<Medicine | null>(null);
+  const [showRelatedMedicines, setShowRelatedMedicines] = useState(false);
+  const [selectedFormula, setSelectedFormula] = useState('');
+  const [dbStatus, setDbStatus] = useState<'unknown' | 'connected' | 'disconnected'>('unknown');
+
+export default function Home() {
+  const [medicines, setMedicines] = useState<Medicine[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showAdminLogin, setShowAdminLogin] = useState(false);
