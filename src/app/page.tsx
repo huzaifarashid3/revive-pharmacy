@@ -22,7 +22,6 @@ export default function Home() {
   const [deletingMedicine, setDeletingMedicine] = useState<Medicine | null>(null);
   const [showRelatedMedicines, setShowRelatedMedicines] = useState(false);
   const [selectedFormula, setSelectedFormula] = useState('');
-  const [selectedMedicineId, setSelectedMedicineId] = useState('');
 
   // Load medicines and admin status on mount
   useEffect(() => {
@@ -73,7 +72,6 @@ export default function Home() {
     // Show related medicines popup if formula exists
     if (medicine.formula && medicine.formula.trim()) {
       setSelectedFormula(medicine.formula);
-      setSelectedMedicineId(medicine.id);
       setShowRelatedMedicines(true);
     }
   };
@@ -231,7 +229,7 @@ export default function Home() {
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
-              Search: "{searchQuery}"
+              Search: &quot;{searchQuery}&quot;
               <button
                 onClick={() => setSearchQuery('')}
                 className="ml-2 text-white hover:text-gray-200 transition-colors"
@@ -313,7 +311,6 @@ export default function Home() {
         onClose={() => setShowRelatedMedicines(false)}
         formula={selectedFormula}
         medicines={medicines}
-        currentMedicineId={selectedMedicineId}
       />
     </div>
   );

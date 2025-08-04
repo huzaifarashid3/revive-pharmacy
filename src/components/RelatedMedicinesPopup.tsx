@@ -8,15 +8,13 @@ interface RelatedMedicinesPopupProps {
   onClose: () => void;
   formula: string;
   medicines: Medicine[];
-  currentMedicineId: string;
 }
 
 export default function RelatedMedicinesPopup({ 
   isOpen, 
   onClose, 
   formula, 
-  medicines, 
-  currentMedicineId 
+  medicines
 }: RelatedMedicinesPopupProps) {
   if (!isOpen) return null;
 
@@ -82,13 +80,13 @@ export default function RelatedMedicinesPopup({
               </div>
               <h4 className="text-lg font-semibold text-gray-200 mb-2">No medicines found</h4>
               <p className="text-gray-400 text-sm">
-                No medicines with formula "{formula}" found in the database.
+                No medicines with formula &quot;{formula}&quot; found in the database.
               </p>
             </div>
           ) : (
             <div className="space-y-4">
               <p className="text-gray-300 text-sm mb-4">
-                Found {relatedMedicines.length} medicine{relatedMedicines.length === 1 ? '' : 's'} with formula "{formula}":
+                Found {relatedMedicines.length} medicine{relatedMedicines.length === 1 ? '' : 's'} with formula &quot;{formula}&quot;:
               </p>
               
               {relatedMedicines.map((medicine) => {
