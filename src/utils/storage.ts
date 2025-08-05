@@ -180,7 +180,7 @@ export const storageUtils = {
         this.updateLastSync();
         return dbMedicines;
       }
-    } catch (error) {
+    } catch {
       console.log('Database unavailable, using localStorage');
     }
 
@@ -203,11 +203,11 @@ export const storageUtils = {
       const localMedicines = localStorage.getItem(MEDICINES_KEY);
       if (localMedicines) {
         const medicines = JSON.parse(localMedicines);
-        const medicinesWithoutId = medicines.map(({ id, ...rest }: Medicine) => rest);
+        const medicinesWithoutId = medicines.map(({ id: _, ...rest }: Medicine) => rest);
         await DatabaseService.seedDatabase(medicinesWithoutId);
       } else {
         // Seed with default data
-        const medicinesWithoutId = defaultMedicines.map(({ id, ...rest }) => rest);
+        const medicinesWithoutId = defaultMedicines.map(({ id: _, ...rest }) => rest);
         await DatabaseService.seedDatabase(medicinesWithoutId);
       }
     } catch (error) {
@@ -230,7 +230,7 @@ export const storageUtils = {
         }
         return true;
       }
-    } catch (error) {
+    } catch {
       console.log('Database unavailable, using localStorage');
     }
 
@@ -259,7 +259,7 @@ export const storageUtils = {
         }
         return true;
       }
-    } catch (error) {
+    } catch {
       console.log('Database unavailable, using localStorage');
     }
 
@@ -288,7 +288,7 @@ export const storageUtils = {
         }
         return true;
       }
-    } catch (error) {
+    } catch {
       console.log('Database unavailable, using localStorage');
     }
 

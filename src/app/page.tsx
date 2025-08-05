@@ -8,7 +8,6 @@ import MedicineList from '@/components/MedicineList';
 import AdminLogin from '@/components/AdminLogin';
 import MedicineForm from '@/components/MedicineForm';
 import DeleteConfirmation from '@/components/DeleteConfirmation';
-import RelatedMedicinesPopup from '@/components/RelatedMedicinesPopup';
 import FilterPopup from '@/components/FilterPopup';
 import PWAInstaller from '@/components/PWAInstaller';
 import OfflineIndicator from '@/components/OfflineIndicator';
@@ -23,8 +22,6 @@ export default function Home() {
   const [editingMedicine, setEditingMedicine] = useState<Medicine | null>(null);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [deletingMedicine, setDeletingMedicine] = useState<Medicine | null>(null);
-  const [showRelatedMedicines, setShowRelatedMedicines] = useState(false);
-  const [selectedFormula, setSelectedFormula] = useState('');
   
   // New filter states
   const [showFilterPopup, setShowFilterPopup] = useState(false);
@@ -118,22 +115,6 @@ export default function Home() {
     const handleMedicineClick = (medicine: Medicine) => {
     setSelectedMedicine(medicine);
     setShowFilterPopup(true);
-  };
-
-  const handleFilterApply = (filters: {
-    formula: boolean;
-    dosage: boolean;
-    formulation: boolean;
-  }) => {
-    const newActiveFilters = {
-      formula: filters.formula ? selectedMedicine?.formula || null : null,
-      dosage: filters.dosage ? selectedMedicine?.dosage || null : null,
-      formulation: filters.formulation ? selectedMedicine?.formulation || null : null,
-    };
-    
-    setActiveFilters(newActiveFilters);
-    setShowFilterPopup(false);
-    setSelectedMedicine(null);
   };
 
   const clearFilters = () => {
@@ -311,7 +292,7 @@ export default function Home() {
             
             {searchQuery.trim() && (
               <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-gray-700 text-gray-300 border border-gray-600">
-                Search: "{searchQuery}"
+                Search: &quot;{searchQuery}&quot;
               </span>
             )}
             
@@ -410,14 +391,6 @@ export default function Home() {
           setSelectedMedicine(null);
         }}
         medicine={selectedMedicine}
-        medicines={medicines}
-      />
-
-      {/* Related Medicines Popup */}
-      <RelatedMedicinesPopup
-        isOpen={showRelatedMedicines}
-        onClose={() => setShowRelatedMedicines(false)}
-        formula={selectedFormula}
         medicines={medicines}
       />
 
