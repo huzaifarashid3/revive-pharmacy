@@ -19,10 +19,10 @@ interface BulkAddMedicinesProps {
   onSubmit: (medicines: Omit<Medicine, 'id'>[]) => void;
 }
 
-export default function BulkAddMedicines({ 
-  isOpen, 
-  onClose, 
-  onSubmit 
+export default function BulkAddMedicines({
+  isOpen,
+  onClose,
+  onSubmit
 }: BulkAddMedicinesProps) {
   const [medicineRows, setMedicineRows] = useState<MedicineRow[]>([
     {
@@ -75,13 +75,13 @@ export default function BulkAddMedicines({
     let isValid = true;
     const updatedRows = medicineRows.map(row => {
       const errors: { [key: string]: string } = {};
-      
+
       // Name is required
       if (!row.name.trim()) {
         errors.name = 'Required';
         isValid = false;
       }
-      
+
       // Stock must be non-negative
       if (row.stock < 0) {
         errors.stock = 'Cannot be negative';
@@ -114,7 +114,7 @@ export default function BulkAddMedicines({
     }
 
     setIsSubmitting(true);
-    
+
     try {
       onSubmit(validMedicines);
       handleClose();
@@ -186,9 +186,8 @@ export default function BulkAddMedicines({
                         type="text"
                         value={row.name}
                         onChange={(e) => updateRow(row.id, 'name', e.target.value)}
-                        className={`w-full px-2 py-2 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-green-500 text-white bg-gray-700 placeholder-gray-400 ${
-                          row.errors.name ? 'border-red-500' : 'border-gray-600'
-                        }`}
+                        className={`w-full px-2 py-2 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-green-500 text-white bg-gray-700 placeholder-gray-400 ${row.errors.name ? 'border-red-500' : 'border-gray-600'
+                          }`}
                         placeholder="e.g., Panadol"
                       />
                       {row.errors.name && (
@@ -232,8 +231,10 @@ export default function BulkAddMedicines({
                         <option value="Injection">Injection</option>
                         <option value="Cream">Cream</option>
                         <option value="Ointment">Ointment</option>
+                        <option value="Lotion">Lotion</option>
                         <option value="Drops">Drops</option>
                         <option value="Powder">Powder</option>
+                        <option value="Sachet">Sachet</option>
                       </select>
                     </div>
 
@@ -246,9 +247,8 @@ export default function BulkAddMedicines({
                           const value = e.target.value;
                           updateRow(row.id, 'stock', value === '' ? 0 : parseInt(value) || 0);
                         }}
-                        className={`w-full px-2 py-2 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-green-500 text-white bg-gray-700 placeholder-gray-400 ${
-                          row.errors.stock ? 'border-red-500' : 'border-gray-600'
-                        }`}
+                        className={`w-full px-2 py-2 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-green-500 text-white bg-gray-700 placeholder-gray-400 ${row.errors.stock ? 'border-red-500' : 'border-gray-600'
+                          }`}
                         placeholder="0"
                         min="0"
                       />
@@ -263,11 +263,10 @@ export default function BulkAddMedicines({
                         type="button"
                         onClick={() => removeRow(row.id)}
                         disabled={medicineRows.length === 1}
-                        className={`p-1 rounded transition-colors ${
-                          medicineRows.length === 1
-                            ? 'text-gray-500 cursor-not-allowed'
-                            : 'text-red-400 hover:text-red-300 hover:bg-red-900'
-                        }`}
+                        className={`p-1 rounded transition-colors ${medicineRows.length === 1
+                          ? 'text-gray-500 cursor-not-allowed'
+                          : 'text-red-400 hover:text-red-300 hover:bg-red-900'
+                          }`}
                         title="Remove row"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -293,11 +292,10 @@ export default function BulkAddMedicines({
                       type="button"
                       onClick={() => removeRow(row.id)}
                       disabled={medicineRows.length === 1}
-                      className={`p-1 rounded transition-colors ${
-                        medicineRows.length === 1
-                          ? 'text-gray-500 cursor-not-allowed'
-                          : 'text-red-400 hover:text-red-300 hover:bg-red-900'
-                      }`}
+                      className={`p-1 rounded transition-colors ${medicineRows.length === 1
+                        ? 'text-gray-500 cursor-not-allowed'
+                        : 'text-red-400 hover:text-red-300 hover:bg-red-900'
+                        }`}
                       title="Remove medicine"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -317,9 +315,8 @@ export default function BulkAddMedicines({
                         type="text"
                         value={row.name}
                         onChange={(e) => updateRow(row.id, 'name', e.target.value)}
-                        className={`w-full px-3 py-2 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-green-500 text-white bg-gray-800 placeholder-gray-400 ${
-                          row.errors.name ? 'border-red-500' : 'border-gray-600'
-                        }`}
+                        className={`w-full px-3 py-2 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-green-500 text-white bg-gray-800 placeholder-gray-400 ${row.errors.name ? 'border-red-500' : 'border-gray-600'
+                          }`}
                         placeholder="e.g., Panadol"
                       />
                       {row.errors.name && (
@@ -372,8 +369,10 @@ export default function BulkAddMedicines({
                           <option value="Injection">Injection</option>
                           <option value="Cream">Cream</option>
                           <option value="Ointment">Ointment</option>
+                          <option value="Lotion">Lotion</option>
                           <option value="Drops">Drops</option>
                           <option value="Powder">Powder</option>
+                          <option value="Sachet">Sachet</option>
                         </select>
                       </div>
                     </div>
@@ -390,9 +389,8 @@ export default function BulkAddMedicines({
                           const value = e.target.value;
                           updateRow(row.id, 'stock', value === '' ? 0 : parseInt(value) || 0);
                         }}
-                        className={`w-full px-3 py-2 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-green-500 text-white bg-gray-800 placeholder-gray-400 ${
-                          row.errors.stock ? 'border-red-500' : 'border-gray-600'
-                        }`}
+                        className={`w-full px-3 py-2 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-green-500 text-white bg-gray-800 placeholder-gray-400 ${row.errors.stock ? 'border-red-500' : 'border-gray-600'
+                          }`}
                         placeholder="0"
                         min="0"
                       />

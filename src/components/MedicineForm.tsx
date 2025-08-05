@@ -239,8 +239,10 @@ export default function MedicineForm({
                 <option value="Injection">Injection</option>
                 <option value="Cream">Cream</option>
                 <option value="Ointment">Ointment</option>
+                <option value="Lotion">Lotion</option>
                 <option value="Drops">Drops</option>
                 <option value="Powder">Powder</option>
+                <option value="Sachet">Sachet</option>
               </select>
             </div>
 

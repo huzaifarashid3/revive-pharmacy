@@ -1,6 +1,23 @@
 import { Medicine } from '@/types/medicine';
 import { DatabaseService } from '@/lib/database';
 
+/**
+ * STORAGE ARCHITECTURE:
+ * 
+ * 1. SUPABASE = SINGLE SOURCE OF TRUTH
+ *    - All data operations (add/edit/delete) go directly to Supabase
+ *    - Only admins can modify data through the UI
+ * 
+ * 2. LOCALSTORAGE = OFFLINE CACHE ONLY
+ *    - Used only for reading when database is unavailable
+ *    - Never pushes data back to Supabase
+ *    - Gets refreshed from Supabase on each app load
+ * 
+ * 3. NO DEFAULT DATA
+ *    - App shows exactly what's in Supabase
+ *    - If Supabase is empty, app shows empty state
+ */
+
 const MEDICINES_KEY = 'pharmacy_medicines';
 const ADMIN_SESSION_KEY = 'pharmacy_admin_session';
 const LAST_SYNC_KEY = 'pharmacy_last_sync';
@@ -8,145 +25,8 @@ const LAST_SYNC_KEY = 'pharmacy_last_sync';
 // Sync interval: 30 seconds
 const SYNC_INTERVAL = 30 * 1000;
 
-// Default medicines data (for seeding and fallback)
-export const defaultMedicines: Medicine[] = [
-  {
-    id: '1',
-    name: 'Panadol',
-    formula: 'Paracetamol',
-    dosage: '500 mg',
-    formulation: 'Tablet',
-    stock: 0 
-  },
-  {
-    id: '2',
-    name: 'Tylenol',
-    formula: 'Paracetamol',
-    dosage: '325 mg',
-    formulation: 'Tablet',
-    stock: 25
-  },
-  {
-    id: '3',
-    name: 'Calpol',
-    formula: 'Paracetamol',
-    dosage: '120 mg/5ml',
-    formulation: 'Syrup',
-    stock: 15
-  },
-  {
-    id: '4',
-    name: 'Aspirin',
-    formula: 'Acetylsalicylic acid',
-    dosage: '75 mg',
-    formulation: 'Tablet',
-    stock: 40
-  },
-  {
-    id: '5',
-    name: 'Ecospirin',
-    formula: 'Acetylsalicylic acid',
-    dosage: '150 mg',
-    formulation: 'Tablet',
-    stock: 8
-  },
-  {
-    id: '6',
-    name: 'Ibuprofen',
-    formula: 'Ibuprofen',
-    dosage: '200 mg',
-    formulation: 'Capsule',
-    stock: 3 
-  },
-  {
-    id: '7',
-    name: 'Advil',
-    formula: 'Ibuprofen',
-    dosage: '400 mg',
-    formulation: 'Tablet',
-    stock: 22
-  },
-  {
-    id: '8',
-    name: 'Brufen',
-    formula: 'Ibuprofen',
-    dosage: '600 mg',
-    formulation: 'Tablet',
-    stock: 12
-  },
-  {
-    id: '9',
-    name: 'Amoxicillin',
-    formula: 'Amoxicillin',
-    dosage: '250 mg',
-    formulation: 'Capsule',
-    stock: 2
-  },
-  {
-    id: '10',
-    name: 'Augmentin',
-    formula: 'Amoxicillin',
-    dosage: '500 mg',
-    formulation: 'Tablet',
-    stock: 18
-  },
-  {
-    id: '11',
-    name: 'Omeprazole',
-    formula: 'Omeprazole',
-    dosage: '20 mg',
-    formulation: 'Tablet',
-    stock: 30
-  },
-  {
-    id: '12',
-    name: 'Prilosec',
-    formula: 'Omeprazole',
-    dosage: '40 mg',
-    formulation: 'Capsule',
-    stock: 14
-  },
-  {
-    id: '13',
-    name: 'Losec',
-    formula: 'Omeprazole',
-    dosage: '10 mg',
-    formulation: 'Tablet',
-    stock: 0
-  },
-  {
-    id: '14',
-    name: 'Cetirizine',
-    formula: 'Cetirizine',
-    dosage: '10 mg',
-    formulation: 'Tablet',
-    stock: 35
-  },
-  {
-    id: '15',
-    name: 'Zyrtec',
-    formula: 'Cetirizine',
-    dosage: '5 mg/5ml',
-    formulation: 'Syrup',
-    stock: 20
-  },
-  {
-    id: '16',
-    name: 'Metformin',
-    formula: 'Metformin',
-    dosage: '500 mg',
-    formulation: 'Tablet',
-    stock: 45
-  },
-  {
-    id: '17',
-    name: 'Glucophage',
-    formula: 'Metformin',
-    dosage: '850 mg',
-    formulation: 'Tablet',
-    stock: 28
-  }
-];
+// Default medicines data (empty - no default data)
+export const defaultMedicines: Medicine[] = [];
 
 export const storageUtils = {
   // Check if we need to sync with database
@@ -166,59 +46,43 @@ export const storageUtils = {
     localStorage.setItem(LAST_SYNC_KEY, Date.now().toString());
   },
 
-  // Get medicines (try database first, fallback to localStorage)
+  // Get medicines (database is source of truth, localStorage for offline only)
   async getMedicines(): Promise<Medicine[]> {
-    if (typeof window === 'undefined') return defaultMedicines;
+    if (typeof window === 'undefined') return [];
 
     try {
-      // Try to get from database first
+      // Always try database first - it's the source of truth
       const dbMedicines = await DatabaseService.getAllMedicines();
       
-      if (dbMedicines.length > 0) {
-        // Update localStorage cache
-        localStorage.setItem(MEDICINES_KEY, JSON.stringify(dbMedicines));
-        this.updateLastSync();
-        return dbMedicines;
-      }
+      // Cache in localStorage for offline access
+      localStorage.setItem(MEDICINES_KEY, JSON.stringify(dbMedicines));
+      this.updateLastSync();
+      return dbMedicines;
     } catch {
-      console.log('Database unavailable, using localStorage');
-    }
-
-    // Fallback to localStorage
-    const stored = localStorage.getItem(MEDICINES_KEY);
-    if (stored) {
-      return JSON.parse(stored);
-    }
-
-    // Final fallback to default data
-    localStorage.setItem(MEDICINES_KEY, JSON.stringify(defaultMedicines));
-    return defaultMedicines;
-  },
-
-  // Sync localStorage medicines to database (for initial seed)
-  async syncToDatabase(): Promise<void> {
-    if (typeof window === 'undefined') return;
-
-    try {
-      const localMedicines = localStorage.getItem(MEDICINES_KEY);
-      if (localMedicines) {
-        const medicines = JSON.parse(localMedicines);
-        const medicinesWithoutId = medicines.map(({ id: _, ...rest }: Medicine) => rest);
-        await DatabaseService.seedDatabase(medicinesWithoutId);
-      } else {
-        // Seed with default data
-        const medicinesWithoutId = defaultMedicines.map(({ id: _, ...rest }) => rest);
-        await DatabaseService.seedDatabase(medicinesWithoutId);
+      console.log('Database unavailable, using offline cache');
+      
+      // Only use localStorage when database is unavailable (offline mode)
+      const stored = localStorage.getItem(MEDICINES_KEY);
+      if (stored) {
+        return JSON.parse(stored);
       }
-    } catch (error) {
-      console.error('Failed to sync to database:', error);
     }
+
+    // Return empty array if no data available
+    return [];
   },
 
-  // Add medicine (database first, localStorage backup)
+  // Remove sync to database - localStorage should never push to database
+  async syncToDatabase(): Promise<void> {
+    // No longer sync from localStorage to database
+    // Database is the single source of truth
+    console.log('Database is the source of truth - no sync from localStorage');
+  },
+
+  // Add medicine (database only - localStorage is just cache)
   async addMedicine(medicine: Medicine): Promise<boolean> {
     try {
-      // Try database first
+      // Only add to database - it's the source of truth
       const dbMedicine = await DatabaseService.addMedicine(medicine);
       if (dbMedicine) {
         // Update localStorage cache
@@ -230,24 +94,17 @@ export const storageUtils = {
         }
         return true;
       }
-    } catch {
-      console.log('Database unavailable, using localStorage');
-    }
-
-    // Fallback to localStorage
-    if (typeof window !== 'undefined') {
-      const current = await this.getMedicines();
-      const updated = [...current, medicine];
-      localStorage.setItem(MEDICINES_KEY, JSON.stringify(updated));
-      return true;
+    } catch (error) {
+      console.error('Failed to add medicine to database:', error);
+      // Don't fallback to localStorage - database is source of truth
     }
     return false;
   },
 
-  // Bulk add medicines (database first, localStorage backup)
+  // Bulk add medicines (database only - localStorage is just cache)
   async addMedicinesBulk(medicines: Medicine[]): Promise<boolean> {
     try {
-      // Try database first - add medicines one by one for better error handling
+      // Only add to database - it's the source of truth
       const dbMedicines: Medicine[] = [];
       for (const medicine of medicines) {
         const dbMedicine = await DatabaseService.addMedicine(medicine);
@@ -257,7 +114,7 @@ export const storageUtils = {
       }
       
       if (dbMedicines.length > 0) {
-        // Update localStorage cache with successfully added medicines
+        // Update localStorage cache
         const current = await this.getMedicines();
         const updated = [...current, ...dbMedicines];
         if (typeof window !== 'undefined') {
@@ -266,24 +123,17 @@ export const storageUtils = {
         }
         return dbMedicines.length === medicines.length;
       }
-    } catch {
-      console.log('Database unavailable, using localStorage');
-    }
-
-    // Fallback to localStorage
-    if (typeof window !== 'undefined') {
-      const current = await this.getMedicines();
-      const updated = [...current, ...medicines];
-      localStorage.setItem(MEDICINES_KEY, JSON.stringify(updated));
-      return true;
+    } catch (error) {
+      console.error('Failed to bulk add medicines to database:', error);
+      // Don't fallback to localStorage - database is source of truth
     }
     return false;
   },
 
-  // Update medicine (database first, localStorage backup)
+  // Update medicine (database only - localStorage is just cache)
   async updateMedicine(updatedMedicine: Medicine): Promise<boolean> {
     try {
-      // Try database first
+      // Only update in database - it's the source of truth
       const dbMedicine = await DatabaseService.updateMedicine(updatedMedicine.id, updatedMedicine);
       if (dbMedicine) {
         // Update localStorage cache
@@ -295,24 +145,17 @@ export const storageUtils = {
         }
         return true;
       }
-    } catch {
-      console.log('Database unavailable, using localStorage');
-    }
-
-    // Fallback to localStorage
-    if (typeof window !== 'undefined') {
-      const current = await this.getMedicines();
-      const updated = current.map(med => med.id === updatedMedicine.id ? updatedMedicine : med);
-      localStorage.setItem(MEDICINES_KEY, JSON.stringify(updated));
-      return true;
+    } catch (error) {
+      console.error('Failed to update medicine in database:', error);
+      // Don't fallback to localStorage - database is source of truth
     }
     return false;
   },
 
-  // Delete medicine (database first, localStorage backup)
+  // Delete medicine (database only - localStorage is just cache)
   async deleteMedicine(medicineId: string): Promise<boolean> {
     try {
-      // Try database first
+      // Only delete from database - it's the source of truth
       const success = await DatabaseService.deleteMedicine(medicineId);
       if (success) {
         // Update localStorage cache
@@ -324,16 +167,9 @@ export const storageUtils = {
         }
         return true;
       }
-    } catch {
-      console.log('Database unavailable, using localStorage');
-    }
-
-    // Fallback to localStorage
-    if (typeof window !== 'undefined') {
-      const current = await this.getMedicines();
-      const updated = current.filter(med => med.id !== medicineId);
-      localStorage.setItem(MEDICINES_KEY, JSON.stringify(updated));
-      return true;
+    } catch (error) {
+      console.error('Failed to delete medicine from database:', error);
+      // Don't fallback to localStorage - database is source of truth
     }
     return false;
   },
@@ -383,6 +219,35 @@ export const storageUtils = {
       localStorage.removeItem(ADMIN_SESSION_KEY);
     } catch (error) {
       console.error('Error clearing admin session:', error);
+    }
+  },
+
+  // Clear all localStorage data (useful for debugging/reset)
+  clearAllLocalData(): void {
+    if (typeof window === 'undefined') return;
+    
+    try {
+      localStorage.removeItem(MEDICINES_KEY);
+      localStorage.removeItem(ADMIN_SESSION_KEY);
+      localStorage.removeItem(LAST_SYNC_KEY);
+      console.log('All local data cleared');
+    } catch (error) {
+      console.error('Error clearing local data:', error);
+    }
+  },
+
+  // Force refresh from database (ignores cache)
+  async forceRefreshFromDatabase(): Promise<Medicine[]> {
+    if (typeof window === 'undefined') return [];
+
+    try {
+      const dbMedicines = await DatabaseService.getAllMedicines();
+      localStorage.setItem(MEDICINES_KEY, JSON.stringify(dbMedicines));
+      this.updateLastSync();
+      return dbMedicines;
+    } catch (error) {
+      console.error('Failed to refresh from database:', error);
+      return [];
     }
   }
 };

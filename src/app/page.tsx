@@ -47,8 +47,7 @@ export default function Home() {
         setMedicines(loadedMedicines);
         setIsAdmin(adminStatus);
         
-        // Try to sync to database on first load
-        await storageUtils.syncToDatabase();
+        // Database is the source of truth - no sync from localStorage
       } catch (error) {
         console.error('Error loading data:', error);
       } finally {
