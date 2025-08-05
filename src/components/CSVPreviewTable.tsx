@@ -2,25 +2,28 @@
 
 import React from 'react';
 import { Medicine } from '@/types/medicine';
-import { CSVError } from '@/utils/csvUtils';
+import { CSVError, DuplicateInfo } from '@/utils/csvUtils';
 
 interface CSVPreviewTableProps {
   medicines: Omit<Medicine, 'id'>[];
   errors: CSVError[];
+  duplicates: DuplicateInfo[];
   totalRows: number;
 }
 
-export default function CSVPreviewTable({ medicines, errors, totalRows }: CSVPreviewTableProps) {
+export default function CSVPreviewTable({ medicines, errors, duplicates, totalRows }: CSVPreviewTableProps) {
   const hasErrors = errors.length > 0;
+  const hasDuplicates = duplicates.length > 0;
   const validCount = medicines.length;
   const errorCount = errors.length;
+  const duplicateCount = duplicates.length;
 
   return (
     <div className="space-y-4">
       {/* Summary */}
       <div className="bg-gray-700 rounded-lg p-4 border border-gray-600">
         <h4 className="text-lg font-semibold text-white mb-2">Import Summary</h4>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-sm">
           <div className="text-center">
             <div className="text-2xl font-bold text-blue-400">{totalRows}</div>
             <div className="text-gray-300">Total Rows</div>
@@ -28,6 +31,10 @@ export default function CSVPreviewTable({ medicines, errors, totalRows }: CSVPre
           <div className="text-center">
             <div className="text-2xl font-bold text-green-400">{validCount}</div>
             <div className="text-gray-300">Valid Medicines</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-yellow-400">{duplicateCount}</div>
+            <div className="text-gray-300">Duplicates</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-red-400">{errorCount}</div>
@@ -50,6 +57,28 @@ export default function CSVPreviewTable({ medicines, errors, totalRows }: CSVPre
               <div key={index} className="text-sm text-red-300 bg-red-900/30 rounded p-2">
                 <span className="font-medium">Row {error.row}:</span> {error.message}
                 {error.field && <span className="text-red-200"> (Field: {error.field})</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Duplicates Section */}
+      {hasDuplicates && (
+        <div className="bg-yellow-900/20 border border-yellow-500/50 rounded-lg p-4">
+          <h4 className="text-lg font-semibold text-yellow-400 mb-3 flex items-center">
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            Duplicates Found (Exact matches - will be skipped)
+          </h4>
+          <p className="text-sm text-yellow-200 mb-3">
+            Medicines with matching name, dosage, formulation, and formula will be skipped to prevent duplicates.
+          </p>
+          <div className="max-h-32 overflow-y-auto space-y-2">
+            {duplicates.map((duplicate, index) => (
+              <div key={index} className="text-sm text-yellow-300 bg-yellow-900/30 rounded p-2">
+                <span className="font-medium">Row {duplicate.row}:</span> &quot;{duplicate.name}&quot; matches existing medicine (all properties identical)
               </div>
             ))}
           </div>

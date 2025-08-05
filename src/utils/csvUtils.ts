@@ -5,6 +5,7 @@ export interface CSVParseResult {
   validMedicines: Omit<Medicine, 'id'>[];
   errors: CSVError[];
   totalRows: number;
+  duplicates: DuplicateInfo[];
 }
 
 export interface CSVError {
@@ -14,17 +15,96 @@ export interface CSVError {
   data?: Record<string, unknown>;
 }
 
+export interface DuplicateInfo {
+  row: number;
+  name: string;
+  existingId?: string;
+  action: 'skip' | 'update';
+}
+
 // Expected CSV headers (exact spelling, case-sensitive)
 export const REQUIRED_CSV_HEADERS = ['name', 'formula', 'dosage', 'formulation', 'stock'] as const;
 
 /**
+ * Check for duplicate medicines by matching all key properties (name, dosage, formulation, formula)
+ * A medicine is considered duplicate only if ALL these properties match exactly (case-insensitive)
+ */
+export function findDuplicates(
+  csvMedicines: Omit<Medicine, 'id'>[],
+  existingMedicines: Medicine[]
+): DuplicateInfo[] {
+  const duplicates: DuplicateInfo[] = [];
+
+  csvMedicines.forEach((csvMed, index) => {
+    const duplicate = existingMedicines.find(existingMed => {
+      // Normalize strings for comparison (case-insensitive, trimmed)
+      const normalize = (str: string | null | undefined) => 
+        (str || '').toString().toLowerCase().trim();
+      
+      return (
+        normalize(csvMed.name) === normalize(existingMed.name) &&
+        normalize(csvMed.dosage) === normalize(existingMed.dosage) &&
+        normalize(csvMed.formulation) === normalize(existingMed.formulation) &&
+        normalize(csvMed.formula) === normalize(existingMed.formula)
+      );
+    });
+
+    if (duplicate) {
+      duplicates.push({
+        row: index + 2, // +2 because CSV rows start at 1, plus header row
+        name: csvMed.name,
+        existingId: duplicate.id,
+        action: 'skip' // Default action, can be changed by user
+      });
+    }
+  });
+
+  return duplicates;
+}
+
+/**
+ * Filter out duplicate medicines based on duplicate handling preferences
+ */
+export function filterDuplicates(
+  csvMedicines: Omit<Medicine, 'id'>[],
+  duplicates: DuplicateInfo[],
+  skipDuplicates: boolean = true
+): Omit<Medicine, 'id'>[] {
+  if (!skipDuplicates) return csvMedicines;
+
+  // Create a set of duplicate medicine signatures for quick lookup
+  const duplicateSignatures = new Set(
+    duplicates.map(d => {
+      // Find the corresponding CSV medicine to get all its properties
+      const csvMed = csvMedicines.find((med, index) => (index + 2) === d.row);
+      if (!csvMed) return '';
+      
+      // Create a signature from all key properties
+      const normalize = (str: string | null | undefined) => 
+        (str || '').toString().toLowerCase().trim();
+      
+      return `${normalize(csvMed.name)}|${normalize(csvMed.dosage)}|${normalize(csvMed.formulation)}|${normalize(csvMed.formula)}`;
+    })
+  );
+
+  return csvMedicines.filter(med => {
+    const normalize = (str: string | null | undefined) => 
+      (str || '').toString().toLowerCase().trim();
+    
+    const signature = `${normalize(med.name)}|${normalize(med.dosage)}|${normalize(med.formulation)}|${normalize(med.formula)}`;
+    return !duplicateSignatures.has(signature);
+  });
+}
+
+/**
  * Parse CSV content and validate medicine data
  */
-export function parseCSV(csvContent: string): CSVParseResult {
+export function parseCSV(csvContent: string, existingMedicines: Medicine[] = []): CSVParseResult {
   const result: CSVParseResult = {
     validMedicines: [],
     errors: [],
-    totalRows: 0
+    totalRows: 0,
+    duplicates: []
   };
 
   try {
@@ -85,6 +165,11 @@ export function parseCSV(csvContent: string): CSVParseResult {
       row: 0,
       message: `Failed to parse CSV: ${error instanceof Error ? error.message : 'Unknown error'}`
     });
+  }
+
+  // Check for duplicates with existing medicines
+  if (result.validMedicines.length > 0 && existingMedicines.length > 0) {
+    result.duplicates = findDuplicates(result.validMedicines, existingMedicines);
   }
 
   return result;

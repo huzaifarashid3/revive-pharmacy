@@ -1,0 +1,7 @@
+name,formula,dosage,formulation,stock
+Aspirin,C9H8O4,100mg,Tablet,25
+Paracetamol,C8H9NO2,500mg,Tablet,30
+Aspirin,C9H8O4,200mg,Tablet,15
+Aspirin,C9H8O4,100mg,Capsule,20
+Test Medicine A,TestFormula,10mg,Capsule,5
+Test Medicine B,TestFormula2,20mg,Tablet,10

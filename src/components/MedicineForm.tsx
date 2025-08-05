@@ -11,6 +11,7 @@ interface MedicineFormProps {
   onCSVImport?: () => void;
   editMedicine?: Medicine | null;
   title?: string;
+  onCheckDuplicate?: (medicine: Omit<Medicine, 'id'>) => boolean;
 }
 
 export default function MedicineForm({ 
@@ -20,7 +21,8 @@ export default function MedicineForm({
   onBulkAdd,
   onCSVImport,
   editMedicine = null,
-  title 
+  title,
+  onCheckDuplicate
 }: MedicineFormProps) {
   const [formData, setFormData] = useState({
     name: '',
@@ -31,6 +33,7 @@ export default function MedicineForm({
   });
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [duplicateWarning, setDuplicateWarning] = useState<string>('');
 
   // Reset form when modal opens/closes or edit medicine changes
   useEffect(() => {
@@ -78,7 +81,17 @@ export default function MedicineForm({
     
     if (!validateForm()) return;
 
+    // Check for duplicates if callback provided and not editing
+    if (onCheckDuplicate && !editMedicine) {
+      const isDuplicate = onCheckDuplicate(formData);
+      if (isDuplicate) {
+        setDuplicateWarning('A medicine with the same name, dosage, formulation, and formula already exists.');
+        return;
+      }
+    }
+
     setIsSubmitting(true);
+    setDuplicateWarning('');
     
     try {
       onSubmit(formData);
@@ -269,6 +282,18 @@ export default function MedicineForm({
                 <p className="mt-1 text-sm text-red-400">{errors.stock}</p>
               )}
             </div>
+
+            {/* Duplicate Warning */}
+            {duplicateWarning && (
+              <div className="mt-4 p-3 bg-yellow-900/20 border border-yellow-500/50 rounded-lg">
+                <div className="flex items-center">
+                  <svg className="w-5 h-5 text-yellow-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                  <p className="text-sm text-yellow-300">{duplicateWarning}</p>
+                </div>
+              </div>
+            )}
 
             {/* Form Actions */}
             <div className="flex justify-end space-x-3">

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Medicine } from '@/types/medicine';
 import { storageUtils } from '@/utils/storage';
+import { findDuplicates } from '@/utils/csvUtils';
 import SearchBar from '@/components/SearchBar';
 import MedicineList from '@/components/MedicineList';
 import AdminLogin from '@/components/AdminLogin';
@@ -135,6 +136,11 @@ export default function Home() {
     setShowMedicineForm(true);
   };
 
+  const checkForDuplicate = (medicineData: Omit<Medicine, 'id'>): boolean => {
+    const duplicates = findDuplicates([medicineData], medicines);
+    return duplicates.length > 0;
+  };
+
   const handleMedicineSubmit = async (medicineData: Omit<Medicine, 'id'>) => {
     try {
       if (editingMedicine) {
@@ -146,7 +152,7 @@ export default function Home() {
           setMedicines(updatedMedicines);
         }
       } else {
-        // Add new medicine
+        // Add new medicine - duplicate checking is handled in the form
         const newMedicineData = { ...medicineData, id: Date.now().toString() };
         const success = await storageUtils.addMedicine(newMedicineData);
         if (success) {
@@ -444,6 +450,7 @@ export default function Home() {
           setShowCSVUpload(true);
         }}
         editMedicine={editingMedicine}
+        onCheckDuplicate={checkForDuplicate}
       />
 
       {/* Bulk Add Medicines Modal */}
@@ -458,6 +465,7 @@ export default function Home() {
         isOpen={showCSVUpload}
         onClose={() => setShowCSVUpload(false)}
         onImport={handleCSVImport}
+        existingMedicines={medicines}
       />
 
       {/* Delete Confirmation Modal */}
