@@ -73,7 +73,6 @@ export default function MedicineItem({ medicine, isAdmin, onEdit, onDelete, onMe
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-white">{medicine.name}</h3>
-                  <p className="text-sm text-gray-400">Medicine</p>
                 </div>
               </div>
               <div className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-bold ${stockStatus.bg} ${stockStatus.color} shadow-sm`}>

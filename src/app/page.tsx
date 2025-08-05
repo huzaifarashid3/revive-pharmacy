@@ -9,6 +9,7 @@ import AdminLogin from '@/components/AdminLogin';
 import MedicineForm from '@/components/MedicineForm';
 import DeleteConfirmation from '@/components/DeleteConfirmation';
 import RelatedMedicinesPopup from '@/components/RelatedMedicinesPopup';
+import FilterPopup from '@/components/FilterPopup';
 import PWAInstaller from '@/components/PWAInstaller';
 import OfflineIndicator from '@/components/OfflineIndicator';
 
@@ -24,6 +25,15 @@ export default function Home() {
   const [deletingMedicine, setDeletingMedicine] = useState<Medicine | null>(null);
   const [showRelatedMedicines, setShowRelatedMedicines] = useState(false);
   const [selectedFormula, setSelectedFormula] = useState('');
+  
+  // New filter states
+  const [showFilterPopup, setShowFilterPopup] = useState(false);
+  const [selectedMedicine, setSelectedMedicine] = useState<Medicine | null>(null);
+  const [activeFilters, setActiveFilters] = useState({
+    formula: null as string | null,
+    dosage: null as string | null,
+    formulation: null as string | null,
+  });
 
   // Load medicines and admin status on mount
   useEffect(() => {
@@ -54,7 +64,7 @@ export default function Home() {
         try {
           const freshMedicines = await storageUtils.getMedicines();
           setMedicines(freshMedicines);
-        } catch (error) {
+        } catch {
           console.log('Sync failed, continuing with cached data');
         }
       }
@@ -63,7 +73,7 @@ export default function Home() {
     return () => clearInterval(syncInterval);
   }, []);
 
-  // Filter medicines based on search query only
+  // Filter medicines based on search query and active filters
   const filteredMedicines = useMemo(() => {
     let filtered = medicines;
     
@@ -78,8 +88,19 @@ export default function Home() {
       );
     }
     
+    // Apply active filters
+    if (activeFilters.formula) {
+      filtered = filtered.filter(medicine => medicine.formula === activeFilters.formula);
+    }
+    if (activeFilters.dosage) {
+      filtered = filtered.filter(medicine => medicine.dosage === activeFilters.dosage);
+    }
+    if (activeFilters.formulation) {
+      filtered = filtered.filter(medicine => medicine.formulation === activeFilters.formulation);
+    }
+    
     return filtered;
-  }, [medicines, searchQuery]);
+  }, [medicines, searchQuery, activeFilters]);
 
   const handleEdit = (medicine: Medicine) => {
     setEditingMedicine(medicine);
@@ -95,15 +116,33 @@ export default function Home() {
   };
 
     const handleMedicineClick = (medicine: Medicine) => {
-    // Show related medicines popup if formula exists
-    if (medicine.formula && medicine.formula.trim()) {
-      setSelectedFormula(medicine.formula);
-      setShowRelatedMedicines(true);
-    }
+    setSelectedMedicine(medicine);
+    setShowFilterPopup(true);
+  };
+
+  const handleFilterApply = (filters: {
+    formula: boolean;
+    dosage: boolean;
+    formulation: boolean;
+  }) => {
+    const newActiveFilters = {
+      formula: filters.formula ? selectedMedicine?.formula || null : null,
+      dosage: filters.dosage ? selectedMedicine?.dosage || null : null,
+      formulation: filters.formulation ? selectedMedicine?.formulation || null : null,
+    };
+    
+    setActiveFilters(newActiveFilters);
+    setShowFilterPopup(false);
+    setSelectedMedicine(null);
   };
 
   const clearFilters = () => {
     setSearchQuery('');
+    setActiveFilters({
+      formula: null,
+      dosage: null,
+      formulation: null,
+    });
   };
 
   const handleAddMedicine = () => {
@@ -266,28 +305,42 @@ export default function Home() {
         />
 
         {/* Active Filters */}
-        {searchQuery.trim() && (
+        {(searchQuery.trim() || activeFilters.formula || activeFilters.dosage || activeFilters.formulation) && (
           <div className="mb-6 flex items-center gap-3 flex-wrap">
             <span className="text-sm font-medium text-gray-300">Active filters:</span>
-            <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-bold bg-blue-500 text-white shadow-md">
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              Search: &quot;{searchQuery}&quot;
-              <button
-                onClick={() => setSearchQuery('')}
-                className="ml-2 text-white hover:text-gray-200 transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </span>
+            
+            {searchQuery.trim() && (
+              <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-gray-700 text-gray-300 border border-gray-600">
+                Search: "{searchQuery}"
+              </span>
+            )}
+            
+            {activeFilters.formula && (
+              <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-green-500 bg-opacity-20 text-green-400 border border-green-500">
+                Formula: {activeFilters.formula}
+              </span>
+            )}
+            
+            {activeFilters.dosage && (
+              <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-green-500 bg-opacity-20 text-green-400 border border-green-500">
+                Dosage: {activeFilters.dosage}
+              </span>
+            )}
+            
+            {activeFilters.formulation && (
+              <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-green-500 bg-opacity-20 text-green-400 border border-green-500">
+                Formulation: {activeFilters.formulation}
+              </span>
+            )}
+            
             <button
               onClick={clearFilters}
-              className="text-sm text-gray-400 hover:text-gray-200 font-medium underline transition-colors"
+              className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium text-gray-400 hover:text-white bg-gray-700 hover:bg-gray-600 border border-gray-600 hover:border-gray-500 transition-colors"
             >
-              Clear all filters
+              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Clear all
             </button>
           </div>
         )}
@@ -347,6 +400,17 @@ export default function Home() {
         onClose={handleDeleteCancel}
         onConfirm={handleDeleteConfirm}
         medicine={deletingMedicine}
+      />
+
+      {/* Filter Popup */}
+      <FilterPopup
+        isOpen={showFilterPopup}
+        onClose={() => {
+          setShowFilterPopup(false);
+          setSelectedMedicine(null);
+        }}
+        medicine={selectedMedicine}
+        medicines={medicines}
       />
 
       {/* Related Medicines Popup */}

@@ -17,21 +17,30 @@ export default function PWAInstaller() {
     }
 
     // Handle PWA install prompt
-    let deferredPrompt: any;
+    let deferredPrompt: Event | null = null;
 
-    window.addEventListener('beforeinstallprompt', (e) => {
+    const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       deferredPrompt = e;
       
       // Show install button or prompt (optional)
       console.log('PWA install prompt available');
-    });
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
     // Handle successful install
-    window.addEventListener('appinstalled', () => {
+    const handleAppInstalled = () => {
       console.log('PWA was installed');
       deferredPrompt = null;
-    });
+    };
+
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
 
   }, []);
 

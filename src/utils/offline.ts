@@ -1,7 +1,14 @@
+interface OfflineOperation {
+  type: string;
+  data: unknown;
+  timestamp: number;
+  id: string;
+}
+
 // Enhanced offline storage utilities
 export const offlineUtils = {
   // Store offline queue of operations
-  addToOfflineQueue(operation: any) {
+  addToOfflineQueue(operation: Omit<OfflineOperation, 'timestamp' | 'id'>) {
     const queue = this.getOfflineQueue();
     queue.push({
       ...operation,
@@ -52,7 +59,7 @@ export const offlineUtils = {
   },
 
   // Enhanced cache management
-  cacheData(key: string, data: any) {
+  cacheData(key: string, data: unknown) {
     try {
       const cached = {
         data,

@@ -92,12 +92,6 @@ export default function AdminLogin({ isOpen, onClose, onLogin }: AdminLoginProps
               </button>
             </div>
           </form>
-          
-          <div className="mt-4 p-3 bg-gray-700 rounded-md border border-gray-600">
-            <p className="text-xs text-gray-300">
-              <strong>Demo credentials:</strong> Password is &quot;admin&quot;
-            </p>
-          </div>
         </div>
       </div>
     </div>
