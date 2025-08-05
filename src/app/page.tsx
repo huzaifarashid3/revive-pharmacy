@@ -9,6 +9,8 @@ import AdminLogin from '@/components/AdminLogin';
 import MedicineForm from '@/components/MedicineForm';
 import DeleteConfirmation from '@/components/DeleteConfirmation';
 import RelatedMedicinesPopup from '@/components/RelatedMedicinesPopup';
+import PWAInstaller from '@/components/PWAInstaller';
+import OfflineIndicator from '@/components/OfflineIndicator';
 
 export default function Home() {
   const [medicines, setMedicines] = useState<Medicine[]>([]);
@@ -187,6 +189,9 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800">
+      {/* Offline Indicator */}
+      <OfflineIndicator />
+      
       {/* Header */}
       <header className="bg-gradient-to-r from-gray-800 to-gray-900 shadow-xl border-b border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -351,6 +356,9 @@ export default function Home() {
         formula={selectedFormula}
         medicines={medicines}
       />
+
+      {/* PWA Installer */}
+      <PWAInstaller />
     </div>
   );
 }
