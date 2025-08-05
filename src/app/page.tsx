@@ -10,6 +10,8 @@ import MedicineForm from '@/components/MedicineForm';
 import DeleteConfirmation from '@/components/DeleteConfirmation';
 import FilterPopup from '@/components/FilterPopup';
 import BulkAddMedicines from '@/components/BulkAddMedicines';
+import CSVUploadModal from '@/components/CSVUploadModal';
+import CSVExportButton from '@/components/CSVExportButton';
 import PWAInstaller from '@/components/PWAInstaller';
 import OfflineIndicator from '@/components/OfflineIndicator';
 
@@ -21,6 +23,7 @@ export default function Home() {
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [showMedicineForm, setShowMedicineForm] = useState(false);
   const [showBulkAdd, setShowBulkAdd] = useState(false);
+  const [showCSVUpload, setShowCSVUpload] = useState(false);
   const [editingMedicine, setEditingMedicine] = useState<Medicine | null>(null);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [deletingMedicine, setDeletingMedicine] = useState<Medicine | null>(null);
@@ -181,6 +184,25 @@ export default function Home() {
   const handleShowBulkAdd = () => {
     setShowMedicineForm(false);
     setShowBulkAdd(true);
+  };
+
+  const handleCSVImport = async (medicinesData: Omit<Medicine, 'id'>[]) => {
+    try {
+      // Generate IDs for each medicine
+      const medicinesWithIds = medicinesData.map((med, index) => ({
+        ...med,
+        id: (Date.now() + index).toString()
+      }));
+      
+      const success = await storageUtils.addMedicinesBulk(medicinesWithIds);
+      if (success) {
+        const updatedMedicines = await storageUtils.getMedicines();
+        setMedicines(updatedMedicines);
+      }
+      setShowCSVUpload(false);
+    } catch (error) {
+      console.error('Error importing CSV medicines:', error);
+    }
   };
 
   const handleDeleteConfirm = async () => {
@@ -361,16 +383,35 @@ export default function Home() {
               Showing {filteredMedicines.length} of {medicines.length} medicines
             </p>
           </div>
+          
+          {/* Admin Actions Only */}
           {isAdmin && (
-            <button 
-              onClick={handleAddMedicine}
-              className="inline-flex items-center justify-center px-6 py-3 rounded-2xl text-sm font-bold text-white bg-green-500 hover:bg-green-600 focus:outline-none focus:ring-4 focus:ring-green-500 focus:ring-opacity-50 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 w-full sm:w-auto"
-            >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-              Add Medicine
-            </button>
+            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+              {medicines.length > 0 && (
+                <CSVExportButton 
+                  medicines={filteredMedicines} 
+                  className="w-full sm:w-auto"
+                />
+              )}
+              <button 
+                onClick={() => setShowCSVUpload(true)}
+                className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 w-full sm:w-auto"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                Import CSV
+              </button>
+              <button 
+                onClick={handleAddMedicine}
+                className="inline-flex items-center justify-center px-6 py-3 rounded-2xl text-sm font-bold text-white bg-green-500 hover:bg-green-600 focus:outline-none focus:ring-4 focus:ring-green-500 focus:ring-opacity-50 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 w-full sm:w-auto"
+              >
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Add Medicine
+              </button>
+            </div>
           )}
         </div>
 
@@ -399,6 +440,10 @@ export default function Home() {
         }}
         onSubmit={handleMedicineSubmit}
         onBulkAdd={handleShowBulkAdd}
+        onCSVImport={() => {
+          setShowMedicineForm(false);
+          setShowCSVUpload(true);
+        }}
         editMedicine={editingMedicine}
       />
 
@@ -407,6 +452,13 @@ export default function Home() {
         isOpen={showBulkAdd}
         onClose={() => setShowBulkAdd(false)}
         onSubmit={handleBulkAddSubmit}
+      />
+
+      {/* CSV Upload Modal */}
+      <CSVUploadModal
+        isOpen={showCSVUpload}
+        onClose={() => setShowCSVUpload(false)}
+        onImport={handleCSVImport}
       />
 
       {/* Delete Confirmation Modal */}

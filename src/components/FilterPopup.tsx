@@ -26,7 +26,7 @@ export default function FilterPopup({
   useEffect(() => {
     if (isOpen && medicine) {
       setLocalFilters({
-        formula: false,
+        formula: true,  // Formula filter is active by default
         dosage: false,
         formulation: false,
       });

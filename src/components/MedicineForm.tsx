@@ -8,6 +8,7 @@ interface MedicineFormProps {
   onClose: () => void;
   onSubmit: (medicine: Omit<Medicine, 'id'>) => void;
   onBulkAdd?: () => void;
+  onCSVImport?: () => void;
   editMedicine?: Medicine | null;
   title?: string;
 }
@@ -17,6 +18,7 @@ export default function MedicineForm({
   onClose, 
   onSubmit, 
   onBulkAdd,
+  onCSVImport,
   editMedicine = null,
   title 
 }: MedicineFormProps) {
@@ -127,17 +129,33 @@ export default function MedicineForm({
           <div className="flex justify-between items-center mb-6">
             <div>
               <h3 className="text-lg font-semibold text-white">{modalTitle}</h3>
-              {!editMedicine && onBulkAdd && (
-                <button
-                  type="button"
-                  onClick={onBulkAdd}
-                  className="mt-1 text-sm text-green-400 hover:text-green-300 transition-colors flex items-center"
-                >
-                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  Switch to Bulk Add
-                </button>
+              {!editMedicine && (onBulkAdd || onCSVImport) && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {onBulkAdd && (
+                    <button
+                      type="button"
+                      onClick={onBulkAdd}
+                      className="text-sm text-green-400 hover:text-green-300 transition-colors flex items-center"
+                    >
+                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      Switch to Bulk Add
+                    </button>
+                  )}
+                  {onCSVImport && (
+                    <button
+                      type="button"
+                      onClick={onCSVImport}
+                      className="text-sm text-blue-400 hover:text-blue-300 transition-colors flex items-center"
+                    >
+                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                      </svg>
+                      Import from CSV
+                    </button>
+                  )}
+                </div>
               )}
             </div>
             <button
