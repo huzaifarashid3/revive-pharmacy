@@ -244,6 +244,42 @@ export const storageUtils = {
     return false;
   },
 
+  // Bulk add medicines (database first, localStorage backup)
+  async addMedicinesBulk(medicines: Medicine[]): Promise<boolean> {
+    try {
+      // Try database first - add medicines one by one for better error handling
+      const dbMedicines: Medicine[] = [];
+      for (const medicine of medicines) {
+        const dbMedicine = await DatabaseService.addMedicine(medicine);
+        if (dbMedicine) {
+          dbMedicines.push(dbMedicine);
+        }
+      }
+      
+      if (dbMedicines.length > 0) {
+        // Update localStorage cache with successfully added medicines
+        const current = await this.getMedicines();
+        const updated = [...current, ...dbMedicines];
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(MEDICINES_KEY, JSON.stringify(updated));
+          this.updateLastSync();
+        }
+        return dbMedicines.length === medicines.length;
+      }
+    } catch {
+      console.log('Database unavailable, using localStorage');
+    }
+
+    // Fallback to localStorage
+    if (typeof window !== 'undefined') {
+      const current = await this.getMedicines();
+      const updated = [...current, ...medicines];
+      localStorage.setItem(MEDICINES_KEY, JSON.stringify(updated));
+      return true;
+    }
+    return false;
+  },
+
   // Update medicine (database first, localStorage backup)
   async updateMedicine(updatedMedicine: Medicine): Promise<boolean> {
     try {

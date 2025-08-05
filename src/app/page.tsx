@@ -9,6 +9,7 @@ import AdminLogin from '@/components/AdminLogin';
 import MedicineForm from '@/components/MedicineForm';
 import DeleteConfirmation from '@/components/DeleteConfirmation';
 import FilterPopup from '@/components/FilterPopup';
+import BulkAddMedicines from '@/components/BulkAddMedicines';
 import PWAInstaller from '@/components/PWAInstaller';
 import OfflineIndicator from '@/components/OfflineIndicator';
 
@@ -19,6 +20,7 @@ export default function Home() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [showMedicineForm, setShowMedicineForm] = useState(false);
+  const [showBulkAdd, setShowBulkAdd] = useState(false);
   const [editingMedicine, setEditingMedicine] = useState<Medicine | null>(null);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [deletingMedicine, setDeletingMedicine] = useState<Medicine | null>(null);
@@ -155,6 +157,30 @@ export default function Home() {
     } catch (error) {
       console.error('Error saving medicine:', error);
     }
+  };
+
+  const handleBulkAddSubmit = async (medicinesData: Omit<Medicine, 'id'>[]) => {
+    try {
+      // Generate IDs for each medicine
+      const medicinesWithIds = medicinesData.map((med, index) => ({
+        ...med,
+        id: (Date.now() + index).toString()
+      }));
+      
+      const success = await storageUtils.addMedicinesBulk(medicinesWithIds);
+      if (success) {
+        const updatedMedicines = await storageUtils.getMedicines();
+        setMedicines(updatedMedicines);
+      }
+      setShowBulkAdd(false);
+    } catch (error) {
+      console.error('Error bulk adding medicines:', error);
+    }
+  };
+
+  const handleShowBulkAdd = () => {
+    setShowMedicineForm(false);
+    setShowBulkAdd(true);
   };
 
   const handleDeleteConfirm = async () => {
@@ -372,7 +398,15 @@ export default function Home() {
           setEditingMedicine(null);
         }}
         onSubmit={handleMedicineSubmit}
+        onBulkAdd={handleShowBulkAdd}
         editMedicine={editingMedicine}
+      />
+
+      {/* Bulk Add Medicines Modal */}
+      <BulkAddMedicines
+        isOpen={showBulkAdd}
+        onClose={() => setShowBulkAdd(false)}
+        onSubmit={handleBulkAddSubmit}
       />
 
       {/* Delete Confirmation Modal */}
